@@ -1,0 +1,74 @@
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body { font-family: system-ui, sans-serif; }
+
+.hero {
+  height: calc(100vh - 56px);
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Slide container */
+.hero-slides {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+}
+
+/* Blur + dark overlay on top of images */
+.hero-slides::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);       /* dark tint */
+  backdrop-filter: blur(1px);             /* modern blur */
+  -webkit-backdrop-filter: blur(4px);     /* Safari support */
+}
+
+.slide {
+  position: absolute;
+  inset: 0;
+  background-size: cover;
+  background-position: center;
+  opacity: 0;
+  animation: fadeSlide 50s infinite;
+}
+
+/* 10 slides × 5s each = 50s total loop */
+.slide:nth-child(1)  { background-image: url('../images/bibile%20(1).jpg');  animation-delay: 0s; }
+.slide:nth-child(2)  { background-image: url('../images/bibile%20(2).jpg');  animation-delay: 5s; }
+.slide:nth-child(3)  { background-image: url('../images/bibile%20(3).jpg');  animation-delay: 10s; }
+.slide:nth-child(4)  { background-image: url('../images/bibile%20(4).jpg');  animation-delay: 15s; }
+.slide:nth-child(5)  { background-image: url('../images/bibile%20(5).jpg');  animation-delay: 20s; }
+.slide:nth-child(6)  { background-image: url('../images/bibile%20(6).jpg');  animation-delay: 25s; }
+.slide:nth-child(7)  { background-image: url('../images/bibile%20(7).jpg');  animation-delay: 30s; }
+.slide:nth-child(8)  { background-image: url('../images/bibile%20(8).jpg');  animation-delay: 35s; }
+.slide:nth-child(9)  { background-image: url('../images/bibile%20(9).jpg');  animation-delay: 40s; }
+.slide:nth-child(10) { background-image: url('../images/bibile%20(10).jpg'); animation-delay: 45s; }
+
+@keyframes fadeSlide {
+  0%     { opacity: 0; }
+  2%     { opacity: 1; }
+  10%    { opacity: 1; }
+  12%    { opacity: 0; }
+  100%   { opacity: 0; }
+}
+
+.hero .container {
+  z-index: 1;
+}
+
+/* Make heading text pop with a subtle shadow */
+.hero h1 {
+  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.8);
+}
+
+.hero p {
+  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.8);
+}

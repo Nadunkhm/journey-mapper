@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Map — Journey Mapper</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.css">
+</head>
+<body>
+<nav class="navbar navbar-dark bg-success">
+  <div class="container"><a class="navbar-brand" href="index.html">Journey Mapper</a></div>
+</nav>
+<div class="container-fluid my-3">
+  <div id="filters" class="mb-2 d-flex flex-wrap gap-2"></div>
+  <div id="map" style="height:75vh;border-radius:8px"></div>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.js"></script>
+<script src="js/api.js"></script>
+<script>
+let map, markers = [], activeCats = new Set();
+
+async function init() {
+  map = L.map('map').setView([7.16, 81.22], 11);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap' }).addTo(map);
+
+  const cats = await apiGet('/places/meta/categories');
+  document.getElementById('filters').innerHTML = cats.map(c =>
+    `<button class="btn btn-outline-success btn-sm" data-cat="${c.name}">${c.name}</button>`).join('');
+  document.querySelectorAll('#filters button').forEach(b => b.onclick = () => {
+    const c = b.dataset.cat;
+    activeCats.has(c) ? activeCats.delete(c) : activeCats.add(c);
+    b.classList.toggle('active');
+    refresh();
+  });
+  refresh();
+}
+
+async function refresh() {
+  const params = new URLSearchParams();
+  if (activeCats.size) params.set('categories', [...activeCats].join(','));
+  const places = await apiGet('/places?' + params);
+
+  markers.forEach(m => map.removeLayer(m));
+  markers = places.filter(p => p.latitude && p.longitude).map(p => {
+    const m = L.marker([p.latitude, p.longitude]).addTo(map);
+    m.bindPopup(`<b>${p.name}</b><br>${p.categories.join(', ')}<br>
+      <a href="place.html?id=${p.id}">Details</a> ·
+      <a href="#" onclick="routeTo(${p.latitude},${p.longitude});return false;">Directions</a>`);
+    return m;
+  });
+}
+
+window.routeTo = (lat, lng) => {
+  navigator.geolocation?.getCurrentPosition(pos => {
+    L.Routing.control({
+      waypoints: [L.latLng(pos.coords.latitude, pos.coords.longitude), L.latLng(lat, lng)],
+      routeWhileDragging: false, show: false, addWaypoints: false
+    }).addTo(map);
+  }, () => alert('Location denied. Pan to your start point manually.'));
+};
+
+init();
+</script>
+</body>
+</html>
