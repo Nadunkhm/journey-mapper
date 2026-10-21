@@ -1,14 +1,27 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Place — Journey Mapper</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <style>
+    .star-rating { color: #cbd5e0; font-size: 2rem; cursor: pointer; user-select: none; }
+    .star-rating .active { color: #f6e05e; }
+    .user-gallery img { width: 100%; height: 150px; object-fit: cover; border-radius: 8px; margin-bottom: 15px; }
+  </style>
 </head>
 <body class="bg-light">
-<nav class="navbar navbar-dark bg-success">
-  <div class="container"><a class="navbar-brand" href="index.html">Journey Mapper</a></div>
+<nav class="navbar navbar-expand-lg navbar-dark bg-success">
+  <div class="container">
+    <a class="navbar-brand fw-bold" href="index.html">Journey Mapper</a>
+    <div class="navbar-nav ms-auto flex-row gap-3 align-items-center">
+      <a class="nav-link" href="places.html">Places</a>
+      <a class="nav-link" href="map.html">Map</a>
+      <a class="nav-link" href="trip.html">My Trip <span id="tripBadge" class="badge bg-danger rounded-pill" style="display:none">0</span></a>
+    </div>
+  </div>
 </nav>
 
 <div class="container my-4" id="content">Loading…</div>
@@ -19,26 +32,118 @@
 (async () => {
   const id = new URLSearchParams(location.search).get('id');
   const p = await apiGet('/places/' + id);
+
+  let galleryHTML = '';
+  if (p.user_images && p.user_images.length > 0) {
+    galleryHTML = `
+      <h4 class="mt-4">Community Photos</h4>
+      <div class="row user-gallery">
+        ${p.user_images.map(img => `<div class="col-md-3"><img src="${img.image_url}"></div>`).join('')}
+      </div>`;
+  }
+
+  let ratingText = p.avg_rating ? `⭐ ${p.avg_rating} / 5` : 'No ratings yet';
+
   document.getElementById('content').innerHTML = `
     <a href="places.html" class="btn btn-sm btn-outline-secondary mb-3">← Back</a>
-    <h1>${p.name}</h1>
+    <div class="d-flex justify-content-between align-items-center">
+      <h1>${p.name}</h1>
+      <h4 class="text-warning">${ratingText}</h4>
+    </div>
     <div class="mb-2">${p.categories.map(c=>`<span class="badge bg-secondary me-1">${c}</span>`).join('')}</div>
-    ${p.image_url ? `<img src="${p.image_url}" class="img-fluid rounded mb-3" style="max-height:400px">` : ''}
+    
+    <button class="btn btn-primary my-3" onclick='addToTrip(${p.id}, "${p.name.replace(/'/g, "")}", ${p.distance_km})'>➕ Add to Trip Plan</button>
+
     <p>${p.description}</p>
     <ul class="list-group mb-3">
-      <li class="list-group-item"><strong>Distance from Bibile:</strong> ${p.distance_km} km</li>
+      <li class="list-group-item"><strong>Distance:</strong> ${p.distance_km} km</li>
       <li class="list-group-item"><strong>Opening hours:</strong> ${p.opening_hours || 'Not available'}</li>
       <li class="list-group-item"><strong>Entry fee:</strong> ${p.entry_fee || 'Not available'}</li>
       <li class="list-group-item"><strong>Travel tips:</strong> ${p.travel_tips || 'Not available'}</li>
     </ul>
-    <div class="alert alert-warning small">⚠ Road and weather conditions can change. Please verify locally before travelling.</div>
-    <div id="map" style="height:350px;border-radius:8px"></div>
+    
+    <div class="alert alert-warning small">⚠ Road and weather conditions can change. Please verify locally.</div>
+    <div id="map" style="height:350px;border-radius:8px; margin-bottom: 2rem;"></div>
+
+    ${galleryHTML}
+
+    <hr class="my-5">
+    <div class="row">
+      <div class="col-md-6 mb-4">
+        <h4>Rate this place</h4>
+        <div class="star-rating mb-2" id="starRating">
+          <span data-val="1">★</span><span data-val="2">★</span><span data-val="3">★</span><span data-val="4">★</span><span data-val="5">★</span>
+        </div>
+        <button class="btn btn-primary btn-sm" id="submitRating" disabled>Submit Rating</button>
+        <div id="ratingMsg" class="mt-2 text-success fw-bold"></div>
+      </div>
+      <div class="col-md-6 mb-4">
+        <h4>Upload a Photo</h4>
+        <p class="text-muted small">Photos require admin approval.</p>
+        <form id="uploadForm">
+          <input type="file" class="form-control mb-2" id="imageInput" accept="image/*" required>
+          <button type="submit" class="btn btn-success btn-sm">Upload Image</button>
+        </form>
+        <div id="uploadMsg" class="mt-2 text-success fw-bold"></div>
+      </div>
+    </div>
   `;
+
   if (p.latitude && p.longitude) {
     const m = L.map('map').setView([p.latitude, p.longitude], 13);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap' }).addTo(m);
     L.marker([p.latitude, p.longitude]).addTo(m).bindPopup(p.name).openPopup();
   }
+
+  // Rating Logic
+  let selectedRating = 0;
+  const stars = document.querySelectorAll('#starRating span');
+  const ratingBtn = document.getElementById('submitRating');
+  stars.forEach(star => {
+    star.addEventListener('mouseover', () => stars.forEach(s => s.classList.toggle('active', s.dataset.val <= star.dataset.val)));
+    star.addEventListener('mouseout', () => stars.forEach(s => s.classList.toggle('active', s.dataset.val <= selectedRating)));
+    star.addEventListener('click', () => {
+      selectedRating = star.dataset.val;
+      stars.forEach(s => s.classList.toggle('active', s.dataset.val <= selectedRating));
+      ratingBtn.disabled = false;
+    });
+  });
+
+  ratingBtn.addEventListener('click', async () => {
+    try {
+      await apiSend('/places/' + id + '/rate', 'POST', { rating: selectedRating });
+      document.getElementById('ratingMsg').textContent = '✅ Rating submitted!';
+      ratingBtn.disabled = true;
+    } catch (e) { alert(e.message); }
+  });
+
+  // Upload Logic
+  document.getElementById('uploadForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const file = document.getElementById('imageInput').files[0];
+    if (!file) return;
+    const formData = new FormData();
+    formData.append('image', file);
+    const btn = e.target.querySelector('button');
+    btn.disabled = true;
+    try {
+      const res = await fetch('/api/places/' + id + '/upload', { method: 'POST', body: formData });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      document.getElementById('uploadMsg').textContent = '✅ ' + data.message;
+      document.getElementById('uploadForm').reset();
+    } catch (err) { alert(err.message); } finally { btn.disabled = false; }
+  });
+
+  // Global function for Add to Trip
+  window.addToTrip = function(id, name, distance) {
+    let trip = JSON.parse(localStorage.getItem('myTrip') || '[]');
+    if (trip.find(p => p.id === id)) return alert('Already in your trip!');
+    trip.push({ id, name, distance });
+    localStorage.setItem('myTrip', JSON.stringify(trip));
+    updateTripBadge();
+    alert(`✅ "${name}" added to your Trip!`);
+  };
 })();
 </script>
 </body>

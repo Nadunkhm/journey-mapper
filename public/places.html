@@ -7,23 +7,20 @@
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
 </head>
 <body class="bg-light">
-<nav class="navbar navbar-dark bg-success">
+<nav class="navbar navbar-expand-lg navbar-dark bg-success">
   <div class="container">
-    <a class="navbar-brand" href="index.html">Journey Mapper</a>
-    <div class="navbar-nav flex-row gap-3">
-      <a class="nav-link text-white" href="places.html">Places</a>
-      <a class="nav-link text-white" href="map.html">Map</a>
+    <a class="navbar-brand fw-bold" href="index.html">Journey Mapper</a>
+    <div class="navbar-nav ms-auto flex-row gap-3 align-items-center">
+      <a class="nav-link" href="places.html">Places</a>
+      <a class="nav-link" href="map.html">Map</a>
+      <a class="nav-link" href="trip.html">My Trip <span id="tripBadge" class="badge bg-danger rounded-pill" style="display:none">0</span></a>
     </div>
   </div>
 </nav>
-
 <div class="container my-4">
-  <h2>Places near Bibile</h2>
-
+  <h2 class="mb-3">Places near Bibile</h2>
   <div class="row g-2 mb-3">
-    <div class="col-md-6">
-      <input id="search" class="form-control" placeholder="Search by name…">
-    </div>
+    <div class="col-md-7"><input id="search" class="form-control" placeholder="Search by name…"></div>
     <div class="col-md-3">
       <select id="sort" class="form-select">
         <option value="name">Sort: Name</option>
@@ -31,12 +28,10 @@
       </select>
     </div>
   </div>
-
   <div id="filters" class="mb-3 d-flex flex-wrap gap-2"></div>
   <div id="results" class="row g-3"></div>
   <div id="empty" class="alert alert-warning d-none">No results found.</div>
 </div>
-
 <script src="js/api.js"></script>
 <script src="js/places.js"></script>
 </body>
